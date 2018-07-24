@@ -1,0 +1,21 @@
+{
+    "name": "sunnnnn/yii2-wechat",
+    "description": "WeChat API for Yii2",
+    "keywords": ["yii2", "WeChat"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "sunnnnn",
+            "email": "mrsunnnnn@qq.com"
+        }
+    ],
+    "require": {
+    	"php": ">=5.4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "sunnnnn\\wechat\\": ""
+        }
+    }
+}
