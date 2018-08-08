@@ -36,4 +36,41 @@ class Helper{
         }
         return false;
     }
+
+    public static function xmlToArray($xml){
+        //禁止引用外部xml实体
+        libxml_disable_entity_loader(true);
+        return json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
+    }
+
+    public static function arrayToXml($array){
+        $xml = "<xml>";
+        foreach ($array as $key => $val){
+            if (is_numeric($val)){
+                $xml.="<".$key.">".$val."</".$key.">";
+            }else{
+                $xml.="<".$key."><![CDATA[".$val."]]></".$key.">";
+            }
+        }
+        $xml.="</xml>";
+
+        return $xml;
+    }
+
+    public static function getArrayDepth($array) {
+        if(!is_array($array)) return 0;
+
+        $maxDepth = 1;
+        foreach ($array as $value) {
+            if (is_array($value)) {
+                $depth = self::getArrayDepth($value) + 1;
+
+                if ($depth > $maxDepth) {
+                    $maxDepth = $depth;
+                }
+            }
+        }
+
+        return $maxDepth;
+    }
 }
