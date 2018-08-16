@@ -56,7 +56,7 @@ class EnterpriseWeChat extends Component{
         }
 
         if(!Helper::isWeChatBrowser()){
-            //Error::showError('请在企业微信中打开'， 'Please open in the Enterprise WeChat');
+            //Error::showError('请在企业微信中打开', 'Please open in the Enterprise WeChat');
         }
     }
 
