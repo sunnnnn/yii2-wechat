@@ -73,4 +73,25 @@ class Helper{
 
         return $maxDepth;
     }
+
+    /**
+     * @use: 获取当前URL
+     * @date: 2018/8/13 下午1:48
+     * @author: sunnnnn [http://www.sunnnnn.com] [mrsunnnnn@qq.com]
+     * @return: string
+     * @param bool $proto 是否需要 http:// 或 https://
+     * @param bool $uri 是否需要请求参数
+     */
+    public static function getHost($proto = true, $uri = true){
+        $result = $_SERVER['HTTP_HOST'];
+
+        if($proto === true){
+            $httpType = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')) ? 'https://' : 'http://';
+            $result = $httpType.$result;
+        }
+
+        $uri === true && $result = $result.$_SERVER['REQUEST_URI'];
+
+        return $result;
+    }
 }

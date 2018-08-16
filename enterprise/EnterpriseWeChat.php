@@ -1015,15 +1015,15 @@ class EnterpriseWeChat extends Component{
      * @return: string
      * @param array $jsApiList 需要使用的JS接口列表，https://work.weixin.qq.com/api/doc#10029/附录2-所有JS接口列表
      * @param null $secret
-     * @param bool $https 当前是否使用https
+     * @param bool $url 需要用到JS_SDK的URL，默认当前页面
      * @param bool $debug 调试模式
      * @param string $noncestr
      */
-    public function getJsConfig($jsApiList = [], $secret = null, $https = false, $debug = false, $noncestr = 'EnterpriseWechat'){
+    public function getJsConfig($jsApiList = [], $secret = null, $url = null, $debug = false, $noncestr = 'EnterpriseWechat'){
         $data['jsapi_ticket'] = $this->getJsTicket($secret);
         $data['nonceStr'] = $noncestr;
         $data['timestamp'] = strval(time());
-        $data['url'] = $https === true ? 'https://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'] : 'http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
+        $data['url'] = empty($url) ? Helper::getHost() : $url;
         $data['signature'] = $this->getJsSignature($data);
         $data['appId'] = $this->config['corpid'];
         $data['beta'] = true;
