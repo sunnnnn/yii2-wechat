@@ -4,15 +4,7 @@ namespace sunnnnn\wechat\utils;
  * 对公众平台发送给公众账号的消息加解密示例代码.
  *
  * @copyright Copyright (c) 1998-2014 Tencent Inc.
- */
-
-
-include_once "sha1.php";
-include_once "xmlparse.php";
-include_once "pkcs7Encoder.php";
-include_once "errorCode.php";
-
-/**
+ *
  * 1.第三方回复加密消息给公众平台；
  * 2.第三方收到公众平台发送的消息，验证消息的安全性，并对消息进行解密。
  */
