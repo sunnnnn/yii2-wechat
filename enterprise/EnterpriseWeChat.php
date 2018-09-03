@@ -36,6 +36,7 @@ class EnterpriseWeChat extends Component{
     const URL_UPLOAD_MEDIA = 'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token=%s&type=%s';
     const URL_SEND_MESSAGE = 'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s';
     const URL_JS_GET_TICKET = 'https://qyapi.weixin.qq.com/cgi-bin/get_jsapi_ticket?access_token=%s';
+    const URL_APPROVAL = 'https://qyapi.weixin.qq.com/cgi-bin/corp/getapprovaldata?access_token=%s';
 
     public $config = [
         'corpid'           => '*',  //企业ID，必填
@@ -55,9 +56,9 @@ class EnterpriseWeChat extends Component{
             Error::showError('未配置参数', 'Unconfigured parameter');
         }
 
-        if(!Helper::isWeChatBrowser()){
-            //Error::showError('请在企业微信中打开', 'Please open in the Enterprise WeChat');
-        }
+        //if(!Helper::isWeChatBrowser()){
+        //Error::showError('请在企业微信中打开', 'Please open in the Enterprise WeChat');
+        //}
     }
 
     public function error($message, $title = '', $back = false){
@@ -1054,5 +1055,36 @@ class EnterpriseWeChat extends Component{
         }
 
         return sha1($signature);
+    }
+
+
+    /**===================Approval审批=====================*/
+    /**
+     * @use:
+     * @date: 2018/8/31 上午10:35
+     * @author: sunnnnn [http://www.sunnnnn.com] [mrsunnnnn@qq.com]
+     * @return: mixed|string
+     * @param null $secret
+     * @param string $start 开始时间 时间戳
+     * @param string $end   结束时间 时间戳
+     * @param null $number  从这个审批单号开始抓取
+     */
+    public function getApprovalData($secret = null, $start = '', $end = '', $number = null){
+        $token = $this->getAccessToken($secret);
+
+        $url = sprintf(self::URL_APPROVAL, $token);
+        $data = [
+            'starttime' => empty($start) ? mktime(0,0,0,date('m'),date('d'),date('Y')) : $start,
+            'endtime'   => empty($end) ? time() : $end,
+            'next_spnum' => empty($number) ? null : $number,
+        ];
+        $result = Curl::post($url, json_encode($data));
+        $result = json_decode($result, true);
+
+        if(!empty($result) && $result['errcode'] == 0) {
+            return $result;
+        }else{
+            throw new \Exception(isset($result['errmsg']) ? $result['errmsg'] : 'Network Error');
+        }
     }
 }
