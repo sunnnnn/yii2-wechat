@@ -1066,8 +1066,9 @@ class EnterpriseWeChat extends Component{
      * @return: mixed|string
      * @param null $secret
      * @param string $start 开始时间 时间戳
-     * @param string $end   结束时间 时间戳
-     * @param null $number  从这个审批单号开始抓取
+     * @param string $end 结束时间 时间戳
+     * @param null $number 从这个审批单号开始抓取
+     * @throws \Exception
      */
     public function getApprovalData($secret = null, $start = '', $end = '', $number = null){
         $token = $this->getAccessToken($secret);
