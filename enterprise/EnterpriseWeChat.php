@@ -36,6 +36,7 @@ class EnterpriseWeChat extends Component{
     const URL_UPLOAD_MEDIA = 'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token=%s&type=%s';
     const URL_SEND_MESSAGE = 'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s';
     const URL_JS_GET_TICKET = 'https://qyapi.weixin.qq.com/cgi-bin/get_jsapi_ticket?access_token=%s';
+    const URL_JS_GET_AGENT_TICKET = 'https://qyapi.weixin.qq.com/cgi-bin/ticket/get?access_token=%s&type=agent_config';
     const URL_APPROVAL = 'https://qyapi.weixin.qq.com/cgi-bin/corp/getapprovaldata?access_token=%s';
 
     public $config = [
@@ -45,6 +46,7 @@ class EnterpriseWeChat extends Component{
         'e_contact_secret' => '',   //外部联系人密钥
         'cache_prefix'     => 'access_token_cache_', //Access Token缓存索引
         'cache_js_prefix'  => 'js_ticket_cache_', //缓存索引
+        'cache_js_agent_prefix'  => 'js_agent_ticket_cache_', //缓存索引
         'verify_url_token' => '', //接收事件服务器 Token
         'verify_url_key'   => '', //接收事件服务器 EncodingAESKey
     ];
@@ -1029,6 +1031,57 @@ class EnterpriseWeChat extends Component{
         $data['appId'] = $this->config['corpid'];
         $data['beta'] = true;
         $data['debug'] = $debug;
+        $data['jsApiList'] = $jsApiList;
+        return json_encode($data);
+    }
+
+    /**
+     * @use: 获取JS-SDK agent config的ticket
+     * @date: 2018/9/26 下午2:24
+     * @author: sunnnnn [http://www.sunnnnn.com] [mrsunnnnn@qq.com]
+     * @return: mixed
+     * @param null $secret
+     * @param bool $format
+     * @param bool $refresh
+     */
+    public function getAgentTicket($secret = null, $format = true, $refresh = false){
+        if($refresh === false && Yii::$app->cache->exists($this->config['cache_js_agent_prefix'].$secret)){
+            return Yii::$app->cache->get($this->config['cache_js_agent_prefix'].$secret);
+        }
+
+        $token = $this->getAccessToken($secret);
+        $url = sprintf(self::URL_JS_GET_AGENT_TICKET, $token);
+        $result = Curl::get($url);
+        $result = json_decode($result, true);
+
+        if(!empty($result) && $result['errcode'] == 0) {
+            $expiresIn = isset($result['expires_in']) ? $result['expires_in'] : 7200;
+            Yii::$app->cache->set($this->config['cache_js_agent_prefix'].$secret, $result['ticket'], $expiresIn - 180);
+            return $format === true ? $result['ticket'] : $result;
+        }else{
+            throw new \Exception(isset($result['errmsg']) ? $result['errmsg'] : 'Network Error');
+        }
+    }
+
+    /**
+     * @use: 配置agent config
+     * @date: 2018/9/26 下午2:29
+     * @author: sunnnnn [http://www.sunnnnn.com] [mrsunnnnn@qq.com]
+     * @return: string
+     * @param array $jsApiList
+     * @param null $secret
+     * @param null $agentId
+     * @param null $url
+     * @param string $noncestr
+     */
+    public function getAgentConfig($jsApiList = [], $secret = null, $agentId = null, $url = null, $noncestr = 'EnterpriseWechat'){
+        $data['jsapi_ticket'] = $this->getAgentTicket($secret);
+        $data['nonceStr'] = $noncestr;
+        $data['timestamp'] = strval(time());
+        $data['url'] = empty($url) ? Helper::getHost() : $url;
+        $data['signature'] = $this->getJsSignature($data);
+        $data['corpid'] = $this->config['corpid'];
+        $data['agentid'] = isset($agentId) ? $agentId : $this->config['agentid'];
         $data['jsApiList'] = $jsApiList;
         return json_encode($data);
     }
