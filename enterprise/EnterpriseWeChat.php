@@ -39,6 +39,8 @@ class EnterpriseWeChat extends Component{
     const URL_JS_GET_AGENT_TICKET = 'https://qyapi.weixin.qq.com/cgi-bin/ticket/get?access_token=%s&type=agent_config';
     const URL_APPROVAL = 'https://qyapi.weixin.qq.com/cgi-bin/corp/getapprovaldata?access_token=%s';
 
+    const URL_APPLET_CODE = 'https://qyapi.weixin.qq.com/cgi-bin/miniprogram/jscode2session?access_token=%s&js_code=%s&grant_type=authorization_code';
+
     public $config = [
         'corpid'           => '*',  //企业ID，必填
         'agentid'          => '',   //应用ID
@@ -88,6 +90,7 @@ class EnterpriseWeChat extends Component{
      * @return: mixed|string
      * @param $code
      * @param null $secret
+     * @throws \Exception
      */
     public function getOAuthUserId($code, $secret = null){
         $token = $this->getAccessToken($secret);
@@ -110,6 +113,7 @@ class EnterpriseWeChat extends Component{
      * @return: mixed|string
      * @param $ticket getOAuthUserId获取的user_ticket
      * @param null $secret
+     * @throws \Exception
      */
     public function getOAuthUserInfo($ticket, $secret = null){
         $token = $this->getAccessToken($secret);
@@ -776,6 +780,7 @@ class EnterpriseWeChat extends Component{
      *      普通文件（file）：20MB
      * @param $filePath
      * @param bool $format
+     * @throws \Exception
      */
     public function uploadMedia($secret = null, $filePath, $type = 'image', $format = true){
         $token = $this->getAccessToken($secret);
@@ -812,6 +817,7 @@ class EnterpriseWeChat extends Component{
      * @param null $secret
      * @param null $agentId
      * @param null $safe 表示是否是保密消息，0表示否，1表示是，默认0
+     * @throws \Exception
      */
     public function sendMessage($to = [], $type = '', $extData = [], $secret = null, $agentId = null, $safe = null){
         $token = $this->getAccessToken($secret);
@@ -846,6 +852,7 @@ class EnterpriseWeChat extends Component{
      * @param null $agentId
      * @param null $secret
      * @param int $safe
+     * @throws \Exception
      */
     public function sendTextMessage($to, $content, $agentId = null, $secret = null, $safe = 0){
         $this->sendMessage($to, 'text', ['text' => ['content' => $content]], $secret, $agentId, $safe);
@@ -861,6 +868,7 @@ class EnterpriseWeChat extends Component{
      * @param null $agentId
      * @param null $secret
      * @param int $safe
+     * @throws \Exception
      */
     public function sendImageMessage($to, $mediaId, $agentId = null, $secret = null, $safe = 0){
         $this->sendMessage($to, 'image', ['image' => ['media_id' => $mediaId]], $secret, $agentId, $safe);
@@ -875,6 +883,7 @@ class EnterpriseWeChat extends Component{
      * @param $mediaId 图片媒体文件id，可以调用上传临时素材接口获取
      * @param null $agentId
      * @param null $secret
+     * @throws \Exception
      */
     public function sendVoiceMessage($to, $mediaId, $agentId = null, $secret = null){
         $this->sendMessage($to, 'voice', ['voice' => ['media_id' => $mediaId]], $secret, $agentId);
@@ -893,6 +902,7 @@ class EnterpriseWeChat extends Component{
      * @param null $agentId
      * @param null $secret
      * @param int $safe
+     * @throws \Exception
      */
     public function sendVideoMessage($to, $data = [], $agentId = null, $secret = null, $safe = 0){
         $video = [
@@ -913,6 +923,7 @@ class EnterpriseWeChat extends Component{
      * @param null $agentId
      * @param null $secret
      * @param int $safe
+     * @throws \Exception
      */
     public function sendFileMessage($to, $mediaId, $agentId = null, $secret = null, $safe = 0){
         $this->sendMessage($to, 'file', ['file' => ['media_id' => $mediaId]], $secret, $agentId, $safe);
@@ -931,6 +942,7 @@ class EnterpriseWeChat extends Component{
      *          btntxt: 按钮文字。 默认为“详情”， 不超过4个文字
      * @param null $agentId
      * @param null $secret
+     * @throws \Exception
      */
     public function sendCardMessage($to, $data = [], $agentId = null, $secret = null){
         $card = [
@@ -956,6 +968,7 @@ class EnterpriseWeChat extends Component{
      *          btntxt: 按钮文字，仅在图文数为1条时才生效。 默认为“阅读全文”， 不超过4个文字
      * @param null $agentId
      * @param null $secret
+     * @throws \Exception
      */
     public function sendNewsMessage($to, $data = [], $agentId = null, $secret = null){
         if(Helper::getArrayDepth($data) == 2){
@@ -991,6 +1004,7 @@ class EnterpriseWeChat extends Component{
      * @param null $secret
      * @param bool $format
      * @param bool $refresh 为true则强制刷新
+     * @throws \Exception
      */
     public function getJsTicket($secret = null, $format = true, $refresh = false){
         if($refresh === false && Yii::$app->cache->exists($this->config['cache_js_prefix'].$secret)){
@@ -1021,6 +1035,7 @@ class EnterpriseWeChat extends Component{
      * @param bool $url 需要用到JS_SDK的URL，默认当前页面
      * @param bool $debug 调试模式
      * @param string $noncestr
+     * @throws \Exception
      */
     public function getJsConfig($jsApiList = [], $secret = null, $url = null, $debug = false, $noncestr = 'EnterpriseWechat'){
         $data['jsapi_ticket'] = $this->getJsTicket($secret);
@@ -1043,6 +1058,7 @@ class EnterpriseWeChat extends Component{
      * @param null $secret
      * @param bool $format
      * @param bool $refresh
+     * @throws \Exception
      */
     public function getAgentTicket($secret = null, $format = true, $refresh = false){
         if($refresh === false && Yii::$app->cache->exists($this->config['cache_js_agent_prefix'].$secret)){
@@ -1073,6 +1089,7 @@ class EnterpriseWeChat extends Component{
      * @param null $agentId
      * @param null $url
      * @param string $noncestr
+     * @throws \Exception
      */
     public function getAgentConfig($jsApiList = [], $secret = null, $agentId = null, $url = null, $noncestr = 'EnterpriseWechat'){
         $data['jsapi_ticket'] = $this->getAgentTicket($secret);
@@ -1137,6 +1154,32 @@ class EnterpriseWeChat extends Component{
 
         if(!empty($result) && $result['errcode'] == 0) {
             return $result;
+        }else{
+            throw new \Exception(isset($result['errmsg']) ? $result['errmsg'] : 'Network Error');
+        }
+    }
+
+
+    /**===================小程序=====================*/
+    /**
+     * @use: 登录凭证校验
+     * @date: 2018/11/20 5:00 PM
+     * @author: sunnnnn [http://www.sunnnnn.com] [mrsunnnnn@qq.com]
+     * @return: mixed
+     * @param $code
+     * @param null $secret
+     * @param bool $format
+     * @throws \Exception
+     */
+    public function codeToSession($code, $secret = null, $format = false){
+        $token = $this->getAccessToken($secret);
+
+        $url = sprintf(self::URL_APPLET_CODE, $token, $code);
+        $result = Curl::get($url);
+        $result = json_decode($result, true);
+
+        if(!empty($result) && $result['errcode'] == 0) {
+            return $format === true ? $result['userid'] : $result;
         }else{
             throw new \Exception(isset($result['errmsg']) ? $result['errmsg'] : 'Network Error');
         }
