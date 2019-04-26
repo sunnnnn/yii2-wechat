@@ -55,9 +55,9 @@ class MpWechat extends Component{
 	* @param string $userinfo
 	* @return string
 	 */
-	public function getCodeUrl($url, $userinfo = false){
+	public function getCodeUrl($url, $userinfo = false, $state = 'wechat'){
 		$scope = $userinfo ? 'snsapi_userinfo' : 'snsapi_base';
-		return sprintf(self::WX_URL_CODE, $this->config['app_id'], urlencode($url), $scope, self::STATE);
+		return sprintf(self::WX_URL_CODE, $this->config['app_id'], urlencode($url), $scope, $state);
 	}
 	
 	/**

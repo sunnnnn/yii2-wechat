@@ -33,6 +33,7 @@ class EnterpriseWeChat extends Component{
     const URL_REMOVE_USERS_FROM_TAG = 'https://qyapi.weixin.qq.com/cgi-bin/tag/deltagusers?access_token=%s';
     const URL_GET_USERS_FROM_TAG = 'https://qyapi.weixin.qq.com/cgi-bin/tag/get?access_token=%s&tagid=%s';
     const URL_INVITE = 'https://qyapi.weixin.qq.com/cgi-bin/batch/invite?access_token=%s';
+    const URL_GET_MEDIA = 'https://qyapi.weixin.qq.com/cgi-bin/media/get?access_token=%s&media_id=%s';
     const URL_UPLOAD_MEDIA = 'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token=%s&type=%s';
     const URL_SEND_MESSAGE = 'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s';
     const URL_JS_GET_TICKET = 'https://qyapi.weixin.qq.com/cgi-bin/get_jsapi_ticket?access_token=%s';
@@ -802,6 +803,13 @@ class EnterpriseWeChat extends Component{
         }else{
             throw new \Exception(isset($result['errmsg']) ? $result['errmsg'] : 'Network Error');
         }
+    }
+
+
+    public function getMediaUrl($secret = null, $mediaId){
+        $token = $this->getAccessToken($secret);
+
+        return sprintf(self::URL_GET_MEDIA, $token, $mediaId);
     }
 
     /**====================发送应用消息=====================*/
