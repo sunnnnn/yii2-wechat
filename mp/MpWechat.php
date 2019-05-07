@@ -1,35 +1,43 @@
 <?php
 namespace sunnnnn\wechat\mp;
 
+use Yii;
 use yii\base\Component;
 use sunnnnn\wechat\Error;
+use sunnnnn\wechat\Helper;
+use sunnnnn\wechat\Curl;
 /**
-* @use: 微信公众平台接口开发
-* @date: 2017-5-11 上午10:34:26
-* @author: sunnnnn [www.sunnnnn.com] [mrsunnnnn@qq.com]
+ * @use: 微信公众平台接口开发
+ * @date: 2017-5-11 上午10:34:26
+ * @author: sunnnnn [www.sunnnnn.com] [mrsunnnnn@qq.com]
  */
 class MpWechat extends Component{
-	
-	public $config = [
-	    'appId' => '*',
-	    'appSecret' => '*',
-	    'mchId' => '',
-	    'mchKey' => '',
-	    'cert' => '',
+
+    public $config = [
+        'appId'        => '*',
+        'appSecret'    => '*',
+        'mchId'        => '',
+        'mchKey'       => '',
+        'cert'         => '',
+        'cache_token'  => 'mp_access_token_cache', //Access Token缓存索引
+        'cache_js_ticket'  => 'mp_js_ticket_cache', //Js Ticket缓存索引
     ];
-	
-	const STATE = 'wechat';
-	const WX_URL_CODE = 'https://open.weixin.qq.com/connect/oauth2/authorize?appid=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s#wechat_redirect';
-	const WX_URL_OPENID = 'https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code';
-	const WX_URL_USERINFO = 'https://api.weixin.qq.com/sns/userinfo?access_token=%s&openid=%s&lang=zh_CN';
-	const WX_URL_ACCESSTOKEN = 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s';
-	const WX_URL_TEMPLATEMESSAGE = 'https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=%s';
-	const WX_URL_JSAPITICKET = 'https://api.weixin.qq.com/cgi-bin/ticket/getticket?type=jsapi&access_token=%s';
-	const WX_URL_QRTICKET = 'https://api.weixin.qq.com/cgi-bin/qrcode/create?access_token=%s';
-	const WX_URL_QRCODE = 'https://mp.weixin.qq.com/cgi-bin/showqrcode?ticket=%s';
-	const WX_URL_MENU = 'https://api.weixin.qq.com/cgi-bin/menu/create?access_token=%s';
-	
-	const PAY_URL_BONUS = 'https://api.mch.weixin.qq.com/mmpaymkttransfers/sendredpack'; //红包接口
+
+    const URL_GET_CODE           = 'https://open.weixin.qq.com/connect/oauth2/authorize?appid=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s#wechat_redirect';
+    const URL_GET_OPENID         = 'https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code';
+    const URL_REFRESH_TOKEN      = 'https://api.weixin.qq.com/sns/oauth2/refresh_token?appid=%s&grant_type=refresh_token&refresh_token=%s';
+    const URL_GET_USERINFO       = 'https://api.weixin.qq.com/sns/userinfo?access_token=%s&openid=%s&lang=zh_CN';
+
+    const URL_GET_ACCESSTOKEN    = 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s';
+    const URL_SEND_TEMPLATEMESSAGE = 'https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=%s';
+    const URL_GET_JS_TICKET  = 'https://api.weixin.qq.com/cgi-bin/ticket/getticket?type=jsapi&access_token=%s';
+
+    const WX_URL_QRTICKET        = 'https://api.weixin.qq.com/cgi-bin/qrcode/create?access_token=%s';
+    const WX_URL_QRCODE          = 'https://mp.weixin.qq.com/cgi-bin/showqrcode?ticket=%s';
+
+    const URL_CREATE_MENU        = 'https://api.weixin.qq.com/cgi-bin/menu/create?access_token=%s';
+
+    const URL_SCAN_GET_MERCHANT_INFO = 'https://api.weixin.qq.com/scan/merchantinfo/get?access_token=%s';
 
     public function __construct($config = []){
         Helper::setConfig($this->config, $config);
@@ -39,472 +47,287 @@ class MpWechat extends Component{
         }
 
         if(!Helper::isWeChatBrowser()){
-            Error::showError('请在微信中打开', 'Please open in the WeChat');
+            //Error::showError('请在微信中打开', 'Please open in the WeChat');
         }
     }
 
     public function error($message, $title = '', $back = false){
         Error::showError($message, $title, $back);
     }
-	
-	/**
-	 * 获取url转为微信可获取code的url
-	* @date: 2016-12-28 上午9:59:37
-	* @author: sunnnnn
-	* @param unknown $url
-	* @param string $userinfo
-	* @return string
-	 */
-	public function getCodeUrl($url, $userinfo = false, $state = 'wechat'){
-		$scope = $userinfo ? 'snsapi_userinfo' : 'snsapi_base';
-		return sprintf(self::WX_URL_CODE, $this->config['app_id'], urlencode($url), $scope, $state);
-	}
-	
-	/**
-	 * 获取openid
-	* @date: 2016-12-28 上午10:04:06
-	* @author: sunnnnn
-	* @param unknown $code 微信服务器传回的code参数(与getCodeUrl配合使用)
-	* @param string $getAll
-	* @return mixed
-	 */
-	public function getOpenid($code, $getAll = false){
-		$url = sprintf(self::WX_URL_OPENID, $this->config['app_id'], $this->config['app_secret'], $code);
-		$resultJson = file_get_contents($url);
-		$result = json_decode($resultJson, true);
-		if($getAll){
-			return $result;
-		}
-		return $result['openid'];
-	}
-	
-	/**
-	 * 获取用户信息
-	* @date: 2016-12-28 上午10:04:47
-	* @author: sunnnnn
-	* @param unknown $access_token
-	* @param unknown $openid
-	* @return mixed
-	 */
-	public function getUserinfo($access_token, $openid){
-		$url = sprintf(self::WX_URL_USERINFO, $access_token, $openid);
-		$resultJson = file_get_contents($url);
-		$result = json_decode($resultJson, true);
-		return $result;
-	}
-	
-	/**
-	 * 获取AccessToken（通用型）
-	* @date: 2016-12-28 上午10:05:03
-	* @author: sunnnnn
-	* @param string $getAll false为只获取一个AccessToken，true获取整个返回的数组，包含过期时间等
-	* @return Ambigous <unknown, mixed>
-	 */
-	public function getAccessToken($getAll = false){
-		$url = sprintf(self::WX_URL_ACCESSTOKEN, $this->config['app_id'], $this->config['app_secret']);
-		$result = $this->curlGet($url);
-		return $getAll ? $result : $result['access_token'];
-	}
-	
-	/**
-	 * 发送模板消息
-	* @date: 2016-12-28 上午10:05:25
-	* @author: sunnnnn
-	* @param unknown $data 模板消息数据
-	* @param string $accessToken 可以使用已保存的accessToken， 为空则自动重新获取
-	* @return mixed
-	 */
-	public function sendTemplateMessage($data, $accessToken = ''){
-		$access_token = !empty($accessToken) ? $accessToken : $this->getAccessToken();
-		$url = sprintf(self::WX_URL_TEMPLATEMESSAGE, $access_token);
-		$result = $this->curlPost($url, json_encode($data));
-		return json_decode($result,true);
-	}
-	
-	/**
-	 * 获取JsSdk配置数据
-	* @date: 2016-12-28 上午10:05:49
-	* @author: sunnnnn
-	* @param string $ticket
-	* @param string $url
-	* @param string $noncestr
-	* @return Ambigous <string, \sunnnnn\wechat\Ambigous, unknown, mixed>
-	 */
-	public function getJsSdkConfig($ticket = '', $url = '', $noncestr = 'wechat'){
-		$data['jsapi_ticket'] = empty($ticket) ? $this->getJsapiTicket() : $ticket;
-		$data['noncestr'] = $noncestr;
-		$data['timestamp'] = strval(time());
-		$data['url'] = empty($url) ? 'http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'] : $url;
-		$data['sign'] = $this->getSign($data);
-		$data['appid'] = $this->config['app_id'];
-		return $data;
-	}
-	
-	/**
-	 * 获取JsSdk Ticket
-	* @date: 2016-12-28 上午10:06:35
-	* @author: sunnnnn
-	* @param string $accessToken 可以使用已保存的accessToken， 为空则自动重新获取
-	* @param string $getAll false为只获取一个Ticket，true获取整个返回的数组，包含过期时间等
-	* @return Ambigous <unknown, mixed>
-	 */
-	public function getJsapiTicket($accessToken = '', $getAll = false){
-		$access_token = !empty($accessToken) ? $accessToken : $this->getAccessToken();
-		$url = sprintf(self::WX_URL_JSAPITICKET, $access_token);
-		$ticket = $this->curlGet($url);
-		return $getAll ? $ticket : $ticket['ticket'];
-	}
-	
-	/**
-	 * 创建临时二维码ticket
-	* @date: 2016-12-28 上午10:09:31
-	* @author: sunnnnn
-	* @param unknown $scene_id
-	* @param string $accessToken
-	* @param number $expire_seconds
-	* @return mixed
-	 */
-	public function getQRLimitTicket($scene_id, $accessToken = '', $expire_seconds = 604800){
-		$access_token = !empty($accessToken) ? $accessToken : $this->getAccessToken();
-		$url = sprintf(self::WX_URL_QRTICKET, $access_token);
-		$data = [
-			'expire_seconds' => $expire_seconds,
-			'action_name'    => 'QR_SCENE',
-			'action_info'    => [
-				'scene' => ['scene_id' => $scene_id]
-			],
-		];
-		$result = $this->curlPost($url, json_encode($data));
-		return json_decode($result,true);
-	}
-	
-	/**
-	 * 创建永久二维码ticket
-	* @date: 2016-12-28 上午10:11:10
-	* @author: sunnnnn
-	* @param unknown $scene_str
-	* @param string $accessToken
-	* @return mixed
-	 */
-	public function getQRTicket($scene_str, $accessToken = ''){
-		$access_token = !empty($accessToken) ? $accessToken : $this->getAccessToken();
-		$url = sprintf(self::WX_URL_QRTICKET, $access_token);
-		$data = [
-				'action_name'    => 'QR_LIMIT_SCENE',
-				'action_info'    => [
-						'scene' => ['scene_str' => $scene_str]
-				],
-		];
-		$result = $this->curlPost($url, json_encode($data));
-		return json_decode($result,true);
-	}
-	
-	/**
-	 * 通过ticket换取二维码
-	* @date: 2016-12-28 上午10:12:05
-	* @author: sunnnnn
-	* @param unknown $ticket
-	* @return mixed
-	 */
-	public function getQRCode($ticket){
-		$url = sprintf(self::WX_URL_QRCODE, urlencode($ticket));
-		return $this->curlGet($url);
-	}
-	
-	/**
-	 * 通过ticket换取二维码URL
-	* @date: 2016-12-28 上午10:12:25
-	* @author: sunnnnn
-	* @param unknown $ticket
-	* @return string
-	 */
-	public function getQRCodeUrl($ticket){
-		return sprintf(self::WX_URL_QRCODE, urlencode($ticket));
-	}
-	
-	/**
-	 * 自定义菜单
-	* @date: 2016-12-28 上午10:12:42
-	* @author: sunnnnn
-	* @param unknown $menuData
-	* @param string $accessToken
-	* @return boolean
-	 */
-	public function setMenu($menuData, $accessToken = ''){
-		$access_token = !empty($accessToken) ? $accessToken : $this->getAccessToken();
-		$url = sprintf(self::WX_URL_QRTICKET, $access_token);
-		$json_menu = json_encode($menuData);
-		$json_menu = preg_replace("#\\\u([0-9a-f]+)#ie", "iconv('UCS-2BE', 'UTF-8', pack('H4', '\\1'))", $menuData);
-		$result = $this->curlPost($url, $json_menu);
-		if($result->errcode === 0){
-			return true;
-		}else{
-			return false;
-		}
-	}
-	
-	/**
-	 * 生成签名
-	* @date: 2016-12-28 上午10:13:11
-	* @author: sunnnnn
-	* @param unknown $data
-	* @return string
-	 */
-	private function getSign($data){
-		if(empty($data) || !is_array($data)){
-			return '';
-		}
-		ksort($data);
-		$str = '';
-		foreach($data as $key => $val){
-			if(empty($str)){
-				$str = strtolower($key).'='.$val;
-			}else{
-				$str .= '&'.strtolower($key).'='.$val;
-			}
-		}
-		$sign = sha1($str);
-		return $sign;
-	}
-	
-	/**
-	 * curl get 
-	* @date: 2016-12-28 上午10:13:50
-	* @author: sunnnnn
-	* @param unknown $url
-	* @return mixed
-	 */
-	private function curlGet($url){
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $url);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, FALSE);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-		$output = curl_exec($ch);
-		curl_close($ch);
-		$jsoninfo = json_decode($output, true);
-		return $jsoninfo;
-	}
-	
-	/**
-	 * curl post
-	* @date: 2016-12-28 上午10:14:02
-	* @author: sunnnnn
-	* @param unknown $url
-	* @param unknown $data
-	* @return string|mixed
-	 */
-	private function curlPost($url, $data){
-		$curl = curl_init();
-		curl_setopt($curl, CURLOPT_URL, $url);
-		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
-		curl_setopt($curl, CURLOPT_AUTOREFERER, 1);
-		curl_setopt($curl, CURLOPT_POST, 1);
-		curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-		curl_setopt($curl, CURLOPT_TIMEOUT, 30);
-		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-		$tmpInfo = curl_exec($curl);
-		if (curl_errno($curl)) {
-			return '';
-		}
-		curl_close($curl);
-		return $tmpInfo;
-	}
-	
-	
-/**
- * --------------------------------------------------------------------------------------------------
- * --------------------------------------------------------------------------------------------------
- */
-	/**
-	 * 设置证书路径
-	* @date: 2016-12-28 上午10:14:27
-	* @author: sunnnnn
-	* @param unknown $path
-	 */
-	public function setCertPath($path){
-		$this->config['cert_path'] = $path;
-	}
-	
-	/**
-	 * 发放红包
-	* @date: 2016-12-28 上午10:14:38
-	* @author: sunnnnn
-	* @param unknown $openid openid
-	* @param unknown $money 红包金额
-	* @param unknown $number 红包人数
-	* @param string $send_name 发送方名称
-	* @param string $wishing 祝福语
-	* @param string $act_name 活动名称
-	* @param string $remark 备注
-	* @return boolean
-	 */
-	public function sendBonus($openid, $money, $number, $send_name = '', $wishing = '', $act_name = '', $remark = ''){
-		$data['nonce_str'] = strval(time());
-		$data['mch_billno'] = $this->config['mch_id'].date('YmdHis').rand(1000, 9999);
-		$data['mch_id'] = $this->config['mch_id'];
-		$data['wxappid'] = $this->config['app_id'];
-		$data['send_name'] = $send_name;
-		$data['re_openid'] = $openid;
-		$data['total_amount'] = $money;
-		$data['total_num'] = $number;
-		$data['wishing'] = $wishing;
-		$data['client_ip'] = $this->ip();
-		$data['act_name'] = $act_name;
-		$data['remark'] = $remark;
-		
-		$data['sign'] = $this->getPaySign($data);
-		
-		$xml = simplexml_load_string('<xml/>');
-		$this->createXml($data, $xml);
-		$vars = $xml->saveXML();
-		
-		$result = $this->curlPostSsl(self::PAY_URL_BONUS, $vars);
-		$result = simplexml_load_string($result, 'SimpleXMLElement', LIBXML_NOCDATA);
-		if($result->return_code == 'SUCCESS'){
-			return true;
-		}else{
-			return $result->return_msg;
-		}
-	}
-	
-	/**
-	 * 数组转XML
-	* @date: 2016-12-28 上午10:15:53
-	* @author: sunnnnn
-	* @param unknown $data
-	* @param unknown $xml
-	 */
-	private function createXml($data, $xml){
-		foreach($data as $k => $v) {
-			if(is_array($v)) {
-				$x = $xml->addChild($k);
-				$this->createXml($v, $x);
-			}else $xml->addChild($k, $v);
-		}
-	}
-	
-	/**
-	 * 生成支付签名
-	* @date: 2016-12-28 上午10:16:36
-	* @author: sunnnnn
-	* @param unknown $data
-	* @return string
-	 */
-	private function getPaySign($data){
-		if(empty($data) || !is_array($data)){
-			return '';
-		}
-		ksort($data);
-		$str = '';
-		foreach($data as $key => $val){
-			if(!empty($val)){
-				if(empty($str)){
-					$str = strtolower($key).'='.$val;
-				}else{
-					$str .= '&'.strtolower($key).'='.$val;
-				}
-			}
-		}
-		$str .= '&key='.$this->config['mch_key'];
-		$sign = strtoupper(md5($str));
-		return $sign;
-	}
-	
-	/**
-	 * 带证书请求数据
-	* @date: 2016-12-28 上午10:17:09
-	* @author: sunnnnn
-	* @param unknown $url
-	* @param unknown $vars
-	* @param number $second
-	* @param unknown $aHeader
-	* @return mixed|boolean
-	 */
-	private function curlPostSsl($url, $vars, $second = 30, $aHeader = []){
-		$ch = curl_init();
-		//超时时间
-		curl_setopt($ch,CURLOPT_TIMEOUT,$second);
-		curl_setopt($ch,CURLOPT_RETURNTRANSFER, 1);
-		//这里设置代理，如果有的话
-		//curl_setopt($ch,CURLOPT_PROXY, '10.206.30.98');
-		//curl_setopt($ch,CURLOPT_PROXYPORT, 8080);
-		curl_setopt($ch,CURLOPT_URL,$url);
-		curl_setopt($ch,CURLOPT_SSL_VERIFYPEER,false);
-		curl_setopt($ch,CURLOPT_SSL_VERIFYHOST,false);
-	
-		//以下两种方式需选择一种
-	
-		//第一种方法，cert 与 key 分别属于两个.pem文件
-		//默认格式为PEM，可以注释
-// 		curl_setopt($ch,CURLOPT_SSLCERTTYPE,'PEM');
-		curl_setopt($ch,CURLOPT_SSLCERT, $this->config['cert_path'].'/apiclient_cert.pem');
-		//默认格式为PEM，可以注释
-// 		curl_setopt($ch,CURLOPT_SSLKEYTYPE,'PEM');
-		curl_setopt($ch,CURLOPT_SSLKEY, $this->config['cert_path'].'/apiclient_key.pem');
-	
-		//第二种方式，两个文件合成一个.pem文件
-		// 	curl_setopt($ch,CURLOPT_SSLCERT,getcwd().'/all.pem');
-	
-		if( count($aHeader) >= 1 ){
-			curl_setopt($ch, CURLOPT_HTTPHEADER, $aHeader);
-		}
-	
-		curl_setopt($ch,CURLOPT_POST, 1);
-		curl_setopt($ch,CURLOPT_POSTFIELDS,$vars);
-		$data = curl_exec($ch);
-		if($data){
-			curl_close($ch);
-			return $data;
-		}else {
-			$error = curl_errno($ch);
-			echo "call faild, errorCode:$error\n";
-			curl_close($ch);
-			return false;
-		}
-	}
-	
-	/**
-	 * 获取真实IP
-	* @date: 2016-12-28 上午10:18:19
-	* @author: sunnnnn
-	* @return NULL|boolean|string|unknown
-	 */
-	public function ip(){
-		static $ip = null;
-		if (!is_null($ip)) {
-			return $ip;
-		}
-	
-		// 定义函数: 过滤掉空串、127.0.0.1、和非法字符串
-		$filter_func = function($_ip) {
-			$_ip = trim($_ip);
-			return !empty($_ip) && $_ip != '127.0.0.1' && preg_match('/^[\d.]{7,15}$/', $_ip);
-		};
-	
-		// 定义函数: 取第一个非内网IP
-		$get_func = function($_ip_list) {
-			if (count($_ip_list) > 0) {
-				foreach ($_ip_list as $_ip) {
-					if (!preg_match('/^(10\.0\.10\.|192\.168\.)[\d.]+$/', $_ip)) {
-						return $_ip;
-					}
-				}
-	
-				return $_ip_list[0];
-			}
-			return '0.0.0.0';
-		};
-	
-		$ip_list = [$_SERVER['REMOTE_ADDR']];
-		if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-			$proxy_ip_list = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-			$proxy_ip_list = array_reverse($proxy_ip_list);
-			$ip_list = array_merge($ip_list, $proxy_ip_list);
-		}
-		$ip_list = array_values(array_filter($ip_list, $filter_func));
-		$ip = $get_func($ip_list);
-		return $ip;
-	}
-	
+
+    /**=============================== 登陆授权 ================================*/
+    /**
+     * 获取url转为微信可获取code的url
+     * @date: 2016-12-28 上午9:59:37
+     * @author: sunnnnn
+     * @param string $url 默认当前Url
+     * @param boolen $userinfo 是否需要获取用户信息
+     * @return string state
+     */
+    public function getCodeUrl($url = null, $userinfo = false, $state = null){
+        $url   = $url === null ? Helper::getHost() : $url;
+        $scope = $userinfo ? 'snsapi_userinfo' : 'snsapi_base';
+        $state = $state === null ? Yii::$app->security->generateRandomString(8) : $state;
+        return sprintf(self::URL_GET_CODE, $this->config['appId'], urlencode($url), $scope, $state);
+    }
+
+    /**
+     * 获取openid
+     * @date: 2016-12-28 上午10:04:06
+     * @author: sunnnnn
+     * @param unknown $code 微信服务器传回的code参数(与getCodeUrl配合使用)
+     * @param string $getAll
+     * @return mixed
+     */
+    public function getOpenid($code, $format = true){
+        $url = sprintf(self::URL_GET_OPENID, $this->config['appId'], $this->config['appSecret'], $code);
+        $resultJson = Curl::get($url);
+        $result = json_decode($resultJson, true);
+        if(isset($result['openid'])){
+            return $format === true ? $result['openid'] : $result;
+        }else{
+            throw new \Exception(isset($result['errmsg']) ? $result['errmsg'] : 'Network Error');
+        }
+    }
+
+    /**
+     * @use: 刷新 access token
+     * @date: 2019/4/30 2:10 PM
+     * @author: sunnnnn [http://www.sunnnnn.com] [mrsunnnnn@qq.com]
+     * @return: mixed
+     * @param $refreshToken
+     * @param bool $format
+     */
+    public function refreshToken($refreshToken, $format = true){
+        $url = sprintf(self::URL_REFRESH_TOKEN, $this->config['appId'], $refreshToken);
+        $resultJson = Curl::get($url);
+        $result = json_decode($resultJson, true);
+        if(isset($result['access_token'])){
+            return $format === true ? $result['access_token'] : $result;
+        }else{
+            throw new \Exception(isset($result['errmsg']) ? $result['errmsg'] : 'Network Error');
+        }
+    }
+
+    /**
+     * 获取用户信息
+     * @date: 2016-12-28 上午10:04:47
+     * @author: sunnnnn
+     * @param unknown $access_token
+     * @param unknown $openid
+     * @return mixed
+     */
+    public function getUserinfo($access_token, $openid){
+        $url = sprintf(self::URL_GET_USERINFO, $access_token, $openid);
+        $resultJson = Curl::get($url);
+        $result = json_decode($resultJson, true);
+        if(isset($result['openid'])){
+            return $result;
+        }else{
+            throw new \Exception(isset($result['errmsg']) ? $result['errmsg'] : 'Network Error');
+        }
+    }
+
+
+    /**=============================== 通用功能 ================================*/
+    /**
+     * 获取AccessToken（通用型）
+     * @date: 2016-12-28 上午10:05:03
+     * @author: sunnnnn
+     * @param string $refresh 是否强制刷新access token
+     * @return Ambigous <unknown, mixed>
+     */
+    public function getAccessToken($refresh = false){
+
+        if($refresh === false && Yii::$app->cache->exists($this->config['cache_token'])){
+            return Yii::$app->cache->get($this->config['cache_token']);
+        }
+
+        $url = sprintf(self::URL_GET_ACCESSTOKEN, $this->config['appId'], $this->config['appSecret']);
+        $resultJson = Curl::get($url);
+        $result = json_decode($resultJson, true);
+        if(isset($result['access_token'])){
+            $expiresIn = isset($result['expires_in']) ? $result['expires_in'] : 7200;
+            Yii::$app->cache->set($this->config['cache_token'], $result['access_token'], $expiresIn - 180);
+            return $result['access_token'];
+        }else{
+            throw new \Exception(isset($result['errmsg']) ? $result['errmsg'] : 'Network Error');
+        }
+    }
+
+    /**=============================== 自定义菜单（待） ================================*/
+    /**
+     * 自定义菜单
+     * @date: 2016-12-28 上午10:12:42
+     * @author: sunnnnn
+     * @param unknown $menuData
+     * @param string $accessToken
+     * @return boolean
+     */
+    public function setMenu($menuData, $accessToken = ''){
+        $access_token = !empty($accessToken) ? $accessToken : $this->getAccessToken();
+        $url = sprintf(self::URL_CREATE_MENU, $access_token);
+        $json_menu = json_encode($menuData);
+        $json_menu = preg_replace("#\\\u([0-9a-f]+)#ie", "iconv('UCS-2BE', 'UTF-8', pack('H4', '\\1'))", $menuData);
+        $result = Curl::post($url, $json_menu);
+        if($result->errcode === 0){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+
+    /**=============================== JS-SDK ================================*/
+    /**
+     * 获取JsSdk Ticket
+     * @date: 2016-12-28 上午10:06:35
+     * @author: sunnnnn
+     * @param $refresh 是否强制刷新
+     * @return Ambigous <unknown, mixed>
+     */
+    public function getJsTicket($refresh = false){
+        if($refresh === false && Yii::$app->cache->exists($this->config['cache_js_ticket'])){
+            return Yii::$app->cache->get($this->config['cache_js_ticket']);
+        }
+
+        $token = $this->getAccessToken();
+        $url = sprintf(self::URL_GET_JS_TICKET, $token);
+        $resultJson = Curl::get($url);
+        $result = json_decode($resultJson, true);
+
+        if(isset($result['ticket'])) {
+            $expiresIn = isset($result['expires_in']) ? $result['expires_in'] : 7200;
+            Yii::$app->cache->set($this->config['cache_js_ticket'], $result['ticket'], $expiresIn - 180);
+            return $result['ticket'];
+        }else{
+            throw new \Exception(isset($result['errmsg']) ? $result['errmsg'] : 'Network Error');
+        }
+    }
+
+    /**
+     * 获取JsSdk配置数据
+     * @date: 2016-12-28 上午10:05:49
+     * @author: sunnnnn
+     * @param string $ticket
+     * @param string $url
+     * @param string $noncestr
+     * @return Ambigous <string, \sunnnnn\wechat\Ambigous, unknown, mixed>
+     */
+    public function getJsConfig($url = null, $noncestr = null){
+        $data['jsapi_ticket'] = $this->getJsTicket();
+        $data['noncestr'] = $noncestr === null ? Yii::$app->security->generateRandomString(8) : $noncestr;
+        $data['timestamp'] = strval(time());
+        $data['url'] = url === null ? Helper::getHost() : $url;
+        $data['sign'] = $this->getJsSign($data);
+        $data['appid'] = $this->config['appId'];
+        return $data;
+    }
+
+    /**
+     * 生成签名
+     * @date: 2016-12-28 上午10:13:11
+     * @author: sunnnnn
+     * @param unknown $data
+     * @return string
+     */
+    private function getJsSign($data){
+        if(empty($data) || !is_array($data)){
+            return '';
+        }
+        ksort($data);
+        $str = '';
+        foreach($data as $key => $val){
+            if(empty($str)){
+                $str = strtolower($key).'='.$val;
+            }else{
+                $str .= '&'.strtolower($key).'='.$val;
+            }
+        }
+        $sign = sha1($str);
+        return $sign;
+    }
+
+
+    /**=============================== 二维码 ================================*/
+    /**
+     * 创建临时二维码ticket
+     * @date: 2016-12-28 上午10:09:31
+     * @author: sunnnnn
+     * @param unknown $scene_id
+     * @param string $accessToken
+     * @param number $expire_seconds
+     * @return mixed
+     */
+    public function getQRLimitTicket($scene_id, $accessToken = '', $expire_seconds = 604800){
+        $access_token = !empty($accessToken) ? $accessToken : $this->getAccessToken();
+        $url = sprintf(self::WX_URL_QRTICKET, $access_token);
+        $data = [
+            'expire_seconds' => $expire_seconds,
+            'action_name'    => 'QR_SCENE',
+            'action_info'    => [
+                'scene' => ['scene_id' => $scene_id]
+            ],
+        ];
+        $result = Curl::post($url, json_encode($data));
+        return json_decode($result,true);
+    }
+
+    /**
+     * 创建永久二维码ticket
+     * @date: 2016-12-28 上午10:11:10
+     * @author: sunnnnn
+     * @param unknown $scene_str
+     * @param string $accessToken
+     * @return mixed
+     */
+    public function getQRTicket($scene_str, $accessToken = ''){
+        $access_token = !empty($accessToken) ? $accessToken : $this->getAccessToken();
+        $url = sprintf(self::WX_URL_QRTICKET, $access_token);
+        $data = [
+            'action_name'    => 'QR_LIMIT_SCENE',
+            'action_info'    => [
+                'scene' => ['scene_str' => $scene_str]
+            ],
+        ];
+        $result = Curl::post($url, json_encode($data));
+        return json_decode($result,true);
+    }
+
+    /**
+     * 通过ticket换取二维码
+     * @date: 2016-12-28 上午10:12:05
+     * @author: sunnnnn
+     * @param unknown $ticket
+     * @return mixed
+     */
+    public function getQRCode($ticket){
+        $url = sprintf(self::WX_URL_QRCODE, urlencode($ticket));
+        return Curl::get($url);
+    }
+
+    /**
+     * 通过ticket换取二维码URL
+     * @date: 2016-12-28 上午10:12:25
+     * @author: sunnnnn
+     * @param unknown $ticket
+     * @return string
+     */
+    public function getQRCodeUrl($ticket){
+        return sprintf(self::WX_URL_QRCODE, urlencode($ticket));
+    }
+
+
+    /**=============================== 微信扫一扫 ================================*/
+    public function getScanMerchant(){
+        $access_token = $this->getAccessToken();
+        $url = sprintf(self::URL_SCAN_GET_MERCHANT_INFO, $access_token);
+        $resultJson = Curl::get($url);
+        $result = json_decode($resultJson, true);
+        if(isset($result['errcode']) && $result['errcode'] == 0){
+            return $result;
+        }else{
+            throw new \Exception(isset($result['errmsg']) ? $result['errmsg'] : 'Network Error');
+        }
+    }
 }
