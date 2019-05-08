@@ -4,6 +4,7 @@
     "keywords": ["yii2", "WeChat"],
     "type": "library",
     "license": "MIT",
+    "minimum-stability": "dev",
     "authors": [
         {
             "name": "sunnnnn",
