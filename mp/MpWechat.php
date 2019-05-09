@@ -214,14 +214,17 @@ class MpWechat extends Component{
      * @param string $noncestr
      * @return Ambigous <string, \sunnnnn\wechat\Ambigous, unknown, mixed>
      */
-    public function getJsConfig($url = null, $noncestr = null){
+    public function getJsConfig($jsApiList = [], $debug = false, $url = null, $noncestr = null){
         $data['jsapi_ticket'] = $this->getJsTicket();
-        $data['noncestr'] = $noncestr === null ? Yii::$app->security->generateRandomString(8) : $noncestr;
+        $data['nonceStr'] = $noncestr === null ? Yii::$app->security->generateRandomString(8) : $noncestr;
         $data['timestamp'] = strval(time());
         $data['url'] = url === null ? Helper::getHost() : $url;
-        $data['sign'] = $this->getJsSign($data);
-        $data['appid'] = $this->config['appId'];
-        return $data;
+        $data['signature'] = $this->getJsSign($data);
+        $data['appId'] = $this->config['appId'];
+        $data['debug'] = $debug;
+        $data['jsApiList'] = $jsApiList;
+        //unset($data['jsapi_ticket'], $data['url']);
+        return json_encode($data);
     }
 
     /**
