@@ -218,7 +218,7 @@ class MpWechat extends Component{
         $data['jsapi_ticket'] = $this->getJsTicket();
         $data['nonceStr'] = $noncestr === null ? Yii::$app->security->generateRandomString(8) : $noncestr;
         $data['timestamp'] = strval(time());
-        $data['url'] = url === null ? Helper::getHost() : $url;
+        $data['url'] = $url === null ? Helper::getHost() : $url;
         $data['signature'] = $this->getJsSign($data);
         $data['appId'] = $this->config['appId'];
         $data['debug'] = $debug;
