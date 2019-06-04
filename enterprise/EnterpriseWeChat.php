@@ -350,22 +350,25 @@ class EnterpriseWeChat extends Component{
 
         $url = sprintf(self::URL_CREATE_USER, $token);
         $data = [
-            'userid'           => isset($params['userid']) ? $params['userid'] : null,
-            'name'             => isset($params['name']) ? $params['name'] : null,
-            'department'       => isset($params['department']) ? $params['department'] : [],
-            'mobile'           => isset($params['mobile']) ? $params['mobile'] : '',
-            'email'            => isset($params['email']) ? $params['email'] : '',
-            'english_name'     => isset($params['english_name']) ? $params['english_name'] : '',
-            'order'            => isset($params['order']) ? $params['order'] : [],
-            'position'         => isset($params['position']) ? $params['position'] :'',
-            'gender'           => isset($params['gender']) ? $params['gender'] : 1,
-            'telephone'        => isset($params['telephone']) ? $params['telephone'] : '',
-            'isleader'         => isset($params['isleader']) ? $params['isleader'] : false,
-            'avatar_mediaid'   => isset($params['avatar_mediaid']) ? $params['avatar_mediaid'] : '',
-            'enable'           => isset($params['enable']) ? $params['enable'] : 1,
-            'extattr'          => isset($params['extattr']) ? $params['extattr'] : null,
-            'to_invite'        => isset($params['to_invite']) ? $params['to_invite'] : false,
-            'external_profile' => isset($params['external_profile']) ? $params['external_profile'] : null,
+            'userid'            => isset($params['userid']) ? $params['userid'] : null,
+            'name'              => isset($params['name']) ? $params['name'] : null,
+            'alias'             => isset($params['alias']) ? $params['alias'] : null,
+            'department'        => isset($params['department']) ? $params['department'] : [],
+            'mobile'            => isset($params['mobile']) ? $params['mobile'] : '',
+            'email'             => isset($params['email']) ? $params['email'] : '',
+            'english_name'      => isset($params['english_name']) ? $params['english_name'] : '',
+            'order'             => isset($params['order']) ? $params['order'] : [],
+            'position'          => isset($params['position']) ? $params['position'] :'',
+            'gender'            => isset($params['gender']) ? $params['gender'] : 1,
+            'telephone'         => isset($params['telephone']) ? $params['telephone'] : '',
+            'is_leader_in_dept' => isset($params['is_leader_in_dept']) ? $params['is_leader_in_dept'] : false,
+            'avatar_mediaid'    => isset($params['avatar_mediaid']) ? $params['avatar_mediaid'] : '',
+            'enable'            => isset($params['enable']) ? $params['enable'] : 1,
+            'extattr'           => isset($params['extattr']) ? $params['extattr'] : null,
+            'to_invite'         => isset($params['to_invite']) ? $params['to_invite'] : false,
+            'external_profile'  => isset($params['external_profile']) ? $params['external_profile'] : null,
+            'external_position' => isset($params['external_position']) ? $params['external_position'] : null,
+            'address'           => isset($params['address']) ? $params['address'] : null,
         ];
         $result = Curl::post($url, json_encode($data));
         $result = json_decode($result, true);
@@ -390,24 +393,27 @@ class EnterpriseWeChat extends Component{
         $token = $this->getAccessToken($secret);
 
         $url = sprintf(self::URL_UPDATE_USER, $token);
-        $data = [
-            'userid'           => isset($params['userid']) ? $params['userid'] : null,
-            'name'             => isset($params['name']) ? $params['name'] : null,
-            'department'       => isset($params['department']) ? $params['department'] : null,
-            'mobile'           => isset($params['mobile']) ? $params['mobile'] : null,
-            'email'            => isset($params['email']) ? $params['email'] : null,
-            'english_name'     => isset($params['english_name']) ? $params['english_name'] : null,
-            'order'            => isset($params['order']) ? $params['order'] : null,
-            'position'         => isset($params['position']) ? $params['position'] : null,
-            'gender'           => isset($params['gender']) ? $params['gender'] : null,
-            'telephone'        => isset($params['telephone']) ? $params['telephone'] : null,
-            'isleader'         => isset($params['isleader']) ? $params['isleader'] : null,
-            'avatar_mediaid'   => isset($params['avatar_mediaid']) ? $params['avatar_mediaid'] : null,
-            'enable'           => isset($params['enable']) ? $params['enable'] : null,
-            'extattr'          => isset($params['extattr']) ? $params['extattr'] : null,
-            'to_invite'        => isset($params['to_invite']) ? $params['to_invite'] : null,
-            'external_profile' => isset($params['external_profile']) ? $params['external_profile'] : null,
-        ];
+
+        $data= [];
+        isset($params['userid']) && $data['userid'] = $params['userid'];
+        isset($params['name']) && $data['name'] = $params['name'];
+        isset($params['alias']) && $data['alias'] = $params['alias'];
+        isset($params['department']) && $data['department'] = $params['department'];
+        isset($params['mobile']) && $data['mobile'] = $params['mobile'];
+        isset($params['email']) && $data['email'] = $params['email'];
+        isset($params['english_name']) && $data['english_name'] = $params['english_name'];
+        isset($params['order']) && $data['order'] = $params['order'];
+        isset($params['position']) && $data['position'] = $params['position'];
+        isset($params['gender']) && $data['gender'] = $params['gender'];
+        isset($params['telephone']) && $data['telephone'] = $params['telephone'];
+        isset($params['is_leader_in_dept']) && $data['is_leader_in_dept'] = $params['is_leader_in_dept'];
+        isset($params['avatar_mediaid']) && $data['avatar_mediaid'] = $params['avatar_mediaid'];
+        isset($params['enable']) && $data['enable'] = $params['enable'];
+        isset($params['extattr']) && $data['extattr'] = $params['extattr'];
+        isset($params['external_position']) && $data['external_position'] = $params['external_position'];
+        isset($params['external_profile']) && $data['external_profile'] = $params['external_profile'];
+        isset($params['address']) && $data['address'] = $params['address'];
+
         $result = Curl::post($url, json_encode($data));
         $result = json_decode($result, true);
 
